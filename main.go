@@ -27,32 +27,37 @@ func main() {
 }
 
 func runCommand(command string) {
+	if authedUser() {
+		authRquiredCommands(command)
+	} else {
+		fmt.Println("you must login or register first!")
+		switch command {
+		case "register":
+			register()
+		case "login":
+			login()
+		case "exit":
+			os.Exit(0)
+		}
+	}
+
+}
+
+func authRquiredCommands(command string) {
 	switch command {
 	case "create-task":
-		if authedUser() {
-			createTask()
-		}
+		createTask()
 	case "create-category":
-		if authedUser() {
-			createCategory()
-		}
-
-	case "register":
-		register()
-	case "login":
-		login()
-	case "exit":
-		os.Exit(0)
+		createCategory()
 	default:
 		fmt.Println("command is not valid :", command)
-
 	}
+
 }
 func authedUser() bool {
 	if authenticatedUser != nil {
 		return true
 	}
-	fmt.Println("you must login or register first!")
 	return false
 }
 
