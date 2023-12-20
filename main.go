@@ -9,15 +9,16 @@ import (
 )
 
 var scanner = bufio.NewScanner(os.Stdin)
-var userStorage []structures.User
+var authenticatedUser *structures.User
 
 func main() {
 	fmt.Println(("Wellcome to Todo Application"))
-	command := flag.String("commend-task", "exit", "commend for create , edit and ...")
+	command := flag.String("command-task", "exit", "command for create , edit and ...")
 	flag.Parse()
+
 	for {
 		runCommand(*command)
-		println("please enter another commend or exit")
+		println("please enter another command or exit")
 		scanner.Scan()
 		*command = scanner.Text()
 
@@ -28,12 +29,15 @@ func main() {
 func runCommand(command string) {
 	switch command {
 	case "create-task":
-		createTask()
+		if authedUser() {
+			createTask()
+		}
 	case "create-category":
-		createCategory()
-		println("category created")
+		if authedUser() {
+			createCategory()
+		}
 
-	case "register-user":
+	case "register":
 		register()
 	case "login":
 		login()
@@ -44,6 +48,13 @@ func runCommand(command string) {
 
 	}
 }
+func authedUser() bool {
+	if authenticatedUser != nil {
+		return true
+	}
+	fmt.Println("you must login or register first!")
+	return false
+}
 
 func login() {
 	fmt.Println("Enter email :")
@@ -53,23 +64,18 @@ func login() {
 	scanner.Scan()
 	password := scanner.Text()
 
-	if userExist(email) {
-		if currectPass(email, password) {
+	if structures.UserExist(email) {
+		if structures.CheckPass(email, password) {
 			fmt.Println("login successfuly")
+			user := structures.GetUser(email)
+			authenticatedUser = &user
 		} else {
 			fmt.Println("your password or email is wrong!")
 		}
 
+	} else {
+		fmt.Println("email not exist!")
 	}
-}
-
-func currectPass(email, password string) bool {
-	for _, value := range userStorage {
-		if value.Email == email && value.Password == password {
-			return true
-		}
-	}
-	return false
 }
 
 func register() {
@@ -83,24 +89,13 @@ func register() {
 	fmt.Println("Enter password :")
 	scanner.Scan()
 	password := scanner.Text()
-	newUser.CreateUser(name, email, password)
-	if !userExist(newUser.Email) {
-		userStorage = append(userStorage, newUser)
+	if !(structures.UserExist(email)) {
+		newUser.CreateUser(name, email, password)
+		newUser.AppendToStorage()
 	} else {
-		fmt.Printf("user %s exist!\n", newUser)
+		fmt.Printf("this email  %s exist!\n", email)
 	}
-	fmt.Println(userStorage)
 
-}
-
-func userExist(email string) bool {
-	for _, value := range userStorage {
-		// email is the primary key
-		if email == value.Email {
-			return true
-		}
-	}
-	return false
 }
 
 func createCategory() structures.Category {
