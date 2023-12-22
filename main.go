@@ -49,6 +49,12 @@ func authRquiredCommands(command string) {
 		createTask()
 	case "create-category":
 		createCategory()
+	case "task-list":
+		fmt.Println(structures.GetTaskList(authenticatedUser.ID))
+	case "category-list":
+		fmt.Println(structures.GetCategoryList())
+	case "exit":
+		os.Exit(0)
 	default:
 		fmt.Println("command is not valid :", command)
 	}
@@ -124,6 +130,6 @@ func createTask() {
 	scanner.Scan()
 	var date = scanner.Text()
 
-	newTask.CreateTask(title, date, newCategory, false)
+	newTask.CreateTask(title, date, newCategory, false, authenticatedUser.ID)
 	println("task created")
 }
