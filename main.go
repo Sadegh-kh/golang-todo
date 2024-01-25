@@ -5,16 +5,30 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"todo/structures"
 )
 
+const userStoragePath = "users_storage.txt"
+
 var scanner = bufio.NewScanner(os.Stdin)
 var authenticatedUser *structures.User
+var file *os.File
+var err error
 
 func main() {
 	fmt.Println(("Wellcome to Todo Application"))
 	command := flag.String("command-task", "exit", "command for create , edit and ...")
 	flag.Parse()
+	_, err = os.Stat(userStoragePath)
+	// if file exist, err == nil
+	if err != nil {
+		file, err = os.Create(userStoragePath)
+		if err != nil {
+			fmt.Printf("error happed when we create file: %v\n", err)
+		}
+	}
+	loadFile()
 
 	for {
 		runCommand(*command)
@@ -24,6 +38,42 @@ func main() {
 
 	}
 
+}
+
+func loadFile() {
+	var data = make([]byte, 512)
+	file, err = os.Open(userStoragePath)
+	defer file.Close()
+	_, err = file.Read(data)
+	data_string := string(data)
+	data_slice := strings.Split(data_string, "\n")
+	id := 1
+	for _, u := range data_slice {
+		user := structures.User{}
+		userfields := strings.Split(u, ",")
+		for _, field := range userfields {
+			fields := strings.Split(field, ":")
+			fieldName := strings.ReplaceAll(fields[0], " ", "")
+			fieldValue := fields[1]
+			// TODO wrong load user
+			loadToUserStorage(fieldName, fieldValue, &user)
+
+		}
+		user.ID = id
+		structures.UserStorage = append(structures.UserStorage, user)
+		id += 1
+	}
+}
+
+func loadToUserStorage(fieldName, fieldValue string, user *structures.User) {
+	switch fieldName {
+	case "name":
+		user.Name = fieldValue
+	case "email":
+		user.Email = fieldValue
+	case "password":
+		user.Password = fieldValue
+	}
 }
 
 func runCommand(command string) {
@@ -61,10 +111,7 @@ func authRquiredCommands(command string) {
 
 }
 func authedUser() bool {
-	if authenticatedUser != nil {
-		return true
-	}
-	return false
+	return authenticatedUser != nil
 }
 
 func login() {
@@ -103,6 +150,14 @@ func register() {
 	if !(structures.UserExist(email)) {
 		newUser.CreateUser(name, email, password)
 		newUser.AppendToStorage()
+		file, err = os.OpenFile(userStoragePath, os.O_APPEND, 0644)
+		defer file.Close()
+		if err == nil {
+			user := fmt.Sprintf("name:%s, email:%s, password:%s\n", name, email, password)
+			file.Write([]byte(user))
+		} else {
+			fmt.Printf("error happend when open file : %v", err)
+		}
 	} else {
 		fmt.Printf("this email  %s exist!\n", email)
 	}

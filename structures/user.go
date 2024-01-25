@@ -2,23 +2,24 @@ package structures
 
 type User struct {
 	ID       int
-	name     string
+	Name     string
 	Email    string
 	Password string
 }
 
-var userStorage []User
+var UserStorage []User
+var err error
 
-func (u *User) CreateUser(name, email, password string) {
-	u.ID = len(userStorage) + 1
-	u.name = name
+func (u *User) CreateUser(Name, email, password string) {
+	u.ID = len(UserStorage) + 1
+	u.Name = Name
 	u.Email = email
 	u.Password = password
 
 }
 
 func GetUser(email string) User {
-	for _, value := range userStorage {
+	for _, value := range UserStorage {
 		if email == value.Email {
 			return value
 		}
@@ -27,7 +28,7 @@ func GetUser(email string) User {
 }
 
 func CheckPass(email, password string) bool {
-	for _, value := range userStorage {
+	for _, value := range UserStorage {
 		if value.Email == email && value.Password == password {
 			return true
 		}
@@ -36,7 +37,7 @@ func CheckPass(email, password string) bool {
 }
 
 func UserExist(email string) bool {
-	for _, value := range userStorage {
+	for _, value := range UserStorage {
 		// email is the primary key
 		if email == value.Email {
 			return true
@@ -46,5 +47,5 @@ func UserExist(email string) bool {
 }
 
 func (newUser User) AppendToStorage() {
-	userStorage = append(userStorage, newUser)
+	UserStorage = append(UserStorage, newUser)
 }
