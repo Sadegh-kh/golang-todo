@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -205,22 +206,38 @@ func register() {
 }
 
 func SerializeData(name, email, password string) {
+	user := structures.User{
+		Name:     name,
+		Email:    email,
+		Password: password,
+		ID:       len(structures.UserStorage) + 1,
+	}
 	switch *serializationMode {
 	case "normal":
 		file, err = os.OpenFile(UserStorageNormalPath, os.O_APPEND, 0644)
 		defer file.Close()
 		if err == nil {
-			user := fmt.Sprintf("\nname:%s, email:%s, password:%s", name, email, password)
-			file.Write([]byte(user))
+			userStr := fmt.Sprintf("\nname:%s, email:%s, password:%s", name, email, password)
+			file.Write([]byte(userStr))
 		} else {
 			fmt.Printf("error happend when open file : %v", err)
 		}
 
 	case "json":
 		file, err = os.OpenFile(UserStorageJsonPath, os.O_APPEND, 0644)
+		defer file.Close()
+		if err == nil {
+			userJson, err := json.Marshal(user)
+			if err != nil {
+				fmt.Println("some error happen when serializing :", err)
+			}
+			file.Write(userJson)
+		} else {
+			fmt.Printf("error %v happend when open file\n", err)
+		}
 
 	default:
-		fmt.Println("some error happend in serializing")
+		fmt.Println("some error happend in serializing mode")
 	}
 }
 
