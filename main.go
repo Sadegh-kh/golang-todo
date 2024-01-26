@@ -9,27 +9,30 @@ import (
 	"todo/structures"
 )
 
-const userStoragePath = "users_storage.txt"
+const (
+	UserStorageNormalPath = "users_storage.txt"
+	UserStorageJsonPath   = "users_storage_json.txt"
+)
 
-var scanner = bufio.NewScanner(os.Stdin)
-var authenticatedUser *structures.User
-var file *os.File
-var err error
+var (
+	scanner           = bufio.NewScanner(os.Stdin)
+	authenticatedUser *structures.User
+	file              *os.File
+	err               error
+	serializationMode *string
+)
 
 func main() {
 	fmt.Println(("Wellcome to Todo Application"))
 	command := flag.String("command-task", "exit", "command for create , edit and ...")
+	serializationMode = flag.String("serialize-mode", "normal", "serializtion mode for save status")
 	flag.Parse()
-	_, err = os.Stat(userStoragePath)
-	// if file exist, err == nil
-	if err != nil {
-		file, err = os.Create(userStoragePath)
-		if err != nil {
-			fmt.Printf("error happed when we create file: %v\n", err)
-		}
-	}
+
+	CreateFile()
+
 	loadFile()
 
+	fmt.Println(command)
 	for {
 		runCommand(*command)
 		println("please enter another command or exit")
@@ -40,29 +43,69 @@ func main() {
 
 }
 
+func CreateFile() {
+	switch *serializationMode {
+	case "normal":
+		_, err = os.Stat(UserStorageNormalPath)
+		// if file exist, err == nil
+		if err != nil {
+			file, err = os.Create(UserStorageNormalPath)
+			if err != nil {
+				fmt.Printf("error happed when we create file: %v\n", err)
+			}
+		}
+	case "json":
+		_, err = os.Stat(UserStorageJsonPath)
+		// if file exist, err == nil
+		if err != nil {
+			file, err = os.Create(UserStorageJsonPath)
+			if err != nil {
+				fmt.Printf("error happed when we create file: %v\n", err)
+			}
+		}
+	default:
+		fmt.Println("some error happend in serialization mode")
+
+		return
+	}
+}
+
 func loadFile() {
 	var data = make([]byte, 512)
-	file, err = os.Open(userStoragePath)
-	defer file.Close()
-	_, err = file.Read(data)
-	data_string := string(data)
-	data_slice := strings.Split(data_string, "\n")
 	id := 1
-	for _, u := range data_slice {
-		user := structures.User{}
-		userfields := strings.Split(u, ",")
-		for _, field := range userfields {
-			fields := strings.Split(field, ":")
-			fieldName := strings.ReplaceAll(fields[0], " ", "")
-			fieldValue := fields[1]
-			// TODO wrong load user
-			loadToUserStorage(fieldName, fieldValue, &user)
+	switch *serializationMode {
+	case "normal":
+		fmt.Println("serialze mode is normal")
+		file, err = os.Open(UserStorageNormalPath)
+		defer file.Close()
+		_, err = file.Read(data)
 
+		data_string := string(data)
+		data_slice := strings.Split(data_string, "\n")
+
+		for _, u := range data_slice {
+			user := structures.User{}
+			userfields := strings.Split(u, ",")
+			for _, field := range userfields {
+				fields := strings.Split(field, ":")
+				fieldName := strings.ReplaceAll(fields[0], " ", "")
+				fieldValue := fields[1]
+				// TODO wrong load user
+				loadToUserStorage(fieldName, fieldValue, &user)
+
+			}
+			user.ID = id
+			structures.UserStorage = append(structures.UserStorage, user)
+			id += 1
 		}
-		user.ID = id
-		structures.UserStorage = append(structures.UserStorage, user)
-		id += 1
+	case "json":
+		// decode json format (deserialize)
+	default:
+		fmt.Println("can't serialize")
+
+		return
 	}
+
 }
 
 func loadToUserStorage(fieldName, fieldValue string, user *structures.User) {
@@ -141,27 +184,44 @@ func register() {
 	fmt.Println("Enter name :")
 	scanner.Scan()
 	name := scanner.Text()
+
 	fmt.Println("Enter email :")
 	scanner.Scan()
 	email := scanner.Text()
+
 	fmt.Println("Enter password :")
 	scanner.Scan()
 	password := scanner.Text()
+
 	if !(structures.UserExist(email)) {
 		newUser.CreateUser(name, email, password)
 		newUser.AppendToStorage()
-		file, err = os.OpenFile(userStoragePath, os.O_APPEND, 0644)
-		defer file.Close()
-		if err == nil {
-			user := fmt.Sprintf("name:%s, email:%s, password:%s\n", name, email, password)
-			file.Write([]byte(user))
-		} else {
-			fmt.Printf("error happend when open file : %v", err)
-		}
+
+		SerializeData(name, email, password)
 	} else {
 		fmt.Printf("this email  %s exist!\n", email)
 	}
 
+}
+
+func SerializeData(name, email, password string) {
+	switch *serializationMode {
+	case "normal":
+		file, err = os.OpenFile(UserStorageNormalPath, os.O_APPEND, 0644)
+		defer file.Close()
+		if err == nil {
+			user := fmt.Sprintf("\nname:%s, email:%s, password:%s", name, email, password)
+			file.Write([]byte(user))
+		} else {
+			fmt.Printf("error happend when open file : %v", err)
+		}
+
+	case "json":
+		file, err = os.OpenFile(UserStorageJsonPath, os.O_APPEND, 0644)
+
+	default:
+		fmt.Println("some error happend in serializing")
+	}
 }
 
 func createCategory() structures.Category {
