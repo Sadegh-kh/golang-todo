@@ -8,6 +8,9 @@ import (
 	"os"
 	"strings"
 	"todo/structures"
+
+	"crypto/md5"
+	"encoding/hex"
 )
 
 const (
@@ -127,7 +130,6 @@ func loadFile() {
 			}
 			structures.UserStorage = append(structures.UserStorage, user)
 		}
-		fmt.Println(structures.UserStorage)
 
 	default:
 		fmt.Println("can't serialize")
@@ -194,6 +196,8 @@ func login() {
 	scanner.Scan()
 	password := scanner.Text()
 
+	password = hashPassword(password)
+
 	if structures.UserExist(email) {
 		if structures.CheckPass(email, password) {
 			fmt.Println("login successfuly")
@@ -222,6 +226,8 @@ func register() {
 	scanner.Scan()
 	password := scanner.Text()
 
+	password = hashPassword(password)
+
 	if !(structures.UserExist(email)) {
 		newUser.CreateUser(name, email, password)
 		newUser.AppendToStorage()
@@ -233,7 +239,10 @@ func register() {
 	}
 
 }
-
+func hashPassword(password string) string {
+	hash := md5.Sum([]byte(password))
+	return hex.EncodeToString(hash[:])
+}
 func SerializeData(name, email, password string) {
 	user := structures.User{
 		Name:     name,
