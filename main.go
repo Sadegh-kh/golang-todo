@@ -72,7 +72,7 @@ func CreateFile() {
 
 func loadFile() {
 	id := 1
-	var data = make([]byte, 1024)
+	var data = make([]byte, 512)
 	switch *serializationMode {
 	case "normal":
 		fmt.Println("serialze mode is normal")
@@ -125,8 +125,9 @@ func loadFile() {
 			if err != nil {
 				fmt.Printf("error %v happend when deserializing json format", err)
 			}
-			fmt.Println(user)
+			structures.UserStorage = append(structures.UserStorage, user)
 		}
+		fmt.Println(structures.UserStorage)
 
 	default:
 		fmt.Println("can't serialize")
