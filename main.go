@@ -33,7 +33,6 @@ func main() {
 
 	loadFile()
 
-	fmt.Println(command)
 	for {
 		runCommand(*command)
 		println("please enter another command or exit")
@@ -72,8 +71,8 @@ func CreateFile() {
 }
 
 func loadFile() {
-	var data = make([]byte, 512)
 	id := 1
+	var data = make([]byte, 1024)
 	switch *serializationMode {
 	case "normal":
 		fmt.Println("serialze mode is normal")
@@ -81,11 +80,19 @@ func loadFile() {
 		defer file.Close()
 		_, err = file.Read(data)
 
-		data_string := string(data)
-		data_slice := strings.Split(data_string, "\n")
+		dataString := string(data)
+		dataString = strings.ReplaceAll(dataString, "\x00", "")
 
-		for _, u := range data_slice {
-			user := structures.User{}
+		dataSlice := strings.Split(dataString, "\n")
+
+		user := structures.User{}
+
+		for _, u := range dataSlice {
+
+			if u == "" {
+				fmt.Println("continue")
+				continue
+			}
 			userfields := strings.Split(u, ",")
 			for _, field := range userfields {
 				fields := strings.Split(field, ":")
@@ -101,6 +108,26 @@ func loadFile() {
 		}
 	case "json":
 		// decode json format (deserialize)
+		fmt.Println("serialze mode is json")
+		file, err = os.Open(UserStorageJsonPath)
+		defer file.Close()
+		_, err = file.Read(data)
+
+		dataString := string(data)
+		dataSlice := strings.Split(dataString, "\n")
+
+		user := structures.User{}
+		for _, u := range dataSlice {
+			if u[0] != '{' && u[len(u)-1] != '}' {
+				continue
+			}
+			err = json.Unmarshal([]byte(u), &user)
+			if err != nil {
+				fmt.Printf("error %v happend when deserializing json format", err)
+			}
+			fmt.Println(user)
+		}
+
 	default:
 		fmt.Println("can't serialize")
 
@@ -199,6 +226,7 @@ func register() {
 		newUser.AppendToStorage()
 
 		SerializeData(name, email, password)
+
 	} else {
 		fmt.Printf("this email  %s exist!\n", email)
 	}
@@ -217,7 +245,7 @@ func SerializeData(name, email, password string) {
 		file, err = os.OpenFile(UserStorageNormalPath, os.O_APPEND, 0644)
 		defer file.Close()
 		if err == nil {
-			userStr := fmt.Sprintf("\nname:%s, email:%s, password:%s", name, email, password)
+			userStr := fmt.Sprintf("name:%s, email:%s, password:%s\n", name, email, password)
 			file.Write([]byte(userStr))
 		} else {
 			fmt.Printf("error happend when open file : %v", err)
@@ -231,6 +259,7 @@ func SerializeData(name, email, password string) {
 			if err != nil {
 				fmt.Println("some error happen when serializing :", err)
 			}
+			userJson = append(userJson, "\n"...)
 			file.Write(userJson)
 		} else {
 			fmt.Printf("error %v happend when open file\n", err)
