@@ -2,15 +2,13 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
+	"crypto/md5"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"os"
-	"strings"
+	"todo/storage"
 	"todo/structures"
-
-	"crypto/md5"
-	"encoding/hex"
 )
 
 const (
@@ -21,120 +19,16 @@ const (
 var (
 	scanner           = bufio.NewScanner(os.Stdin)
 	authenticatedUser *structures.User
-	file              *os.File
-	err               error
 	serializationMode *string
-	myFile            = fileStorage{path: UserStorageNormalPath}
+	myFile            = storage.FileStorage{Path: "./data.txt"}
 )
 
-type Storage interface {
-	Create()
-	Load()
-	Save(u structures.User)
-}
-
-type fileStorage struct {
-	path string
-}
-
-func (f fileStorage) Save(u structures.User) {
-	SerializeData(u.Name, u.Email, u.Password)
-}
-func (f fileStorage) Create() {
-	switch *serializationMode {
-	case "normal":
-		_, err = os.Stat(UserStorageNormalPath)
-		// if file exist, err == nil
-		if err != nil {
-			file, err = os.Create(UserStorageNormalPath)
-			if err != nil {
-				fmt.Printf("error happed when we create file: %v\n", err)
-			}
-		}
-	case "json":
-		_, err = os.Stat(UserStorageJsonPath)
-		// if file exist, err == nil
-		if err != nil {
-			file, err = os.Create(UserStorageJsonPath)
-			if err != nil {
-				fmt.Printf("error happed when we create file: %v\n", err)
-			}
-		}
-	default:
-		fmt.Println("some error happend in serialization mode")
-
-		return
-	}
-}
-func (f fileStorage) Load() {
-	id := 1
-	var data = make([]byte, 512)
-	switch *serializationMode {
-	case "normal":
-		fmt.Println("serialze mode is normal")
-		file, err = os.Open(UserStorageNormalPath)
-		defer file.Close()
-		_, err = file.Read(data)
-
-		dataString := string(data)
-		dataString = strings.ReplaceAll(dataString, "\x00", "")
-
-		dataSlice := strings.Split(dataString, "\n")
-
-		user := structures.User{}
-
-		for _, u := range dataSlice {
-
-			if u == "" {
-				fmt.Println("continue")
-				continue
-			}
-			userfields := strings.Split(u, ",")
-			for _, field := range userfields {
-				fields := strings.Split(field, ":")
-				fieldName := strings.ReplaceAll(fields[0], " ", "")
-				fieldValue := fields[1]
-				// TODO wrong load user
-				loadToUserStorage(fieldName, fieldValue, &user)
-
-			}
-			user.ID = id
-			structures.UserStorage = append(structures.UserStorage, user)
-			id += 1
-		}
-	case "json":
-		// decode json format (deserialize)
-		fmt.Println("serialze mode is json")
-		file, err = os.Open(UserStorageJsonPath)
-		defer file.Close()
-		_, err = file.Read(data)
-
-		dataString := string(data)
-		dataSlice := strings.Split(dataString, "\n")
-
-		user := structures.User{}
-		for _, u := range dataSlice {
-			if u[0] != '{' && u[len(u)-1] != '}' {
-				continue
-			}
-			err = json.Unmarshal([]byte(u), &user)
-			if err != nil {
-				fmt.Printf("error %v happend when deserializing json format", err)
-			}
-			structures.UserStorage = append(structures.UserStorage, user)
-		}
-
-	default:
-		fmt.Println("can't serialize")
-
-		return
-	}
-}
 func main() {
 	fmt.Println(("Wellcome to Todo Application"))
 	command := flag.String("command-task", "exit", "command for create , edit and ...")
 	serializationMode = flag.String("serialize-mode", "normal", "serializtion mode for save status")
 	flag.Parse()
+	myFile.SerializationMode = *serializationMode
 
 	CreateStorage(myFile)
 
@@ -150,24 +44,13 @@ func main() {
 
 }
 
-func CreateStorage(s Storage) {
+func CreateStorage(s storage.Storage) {
 	s.Create()
 }
 
-func LoadStorage(s Storage) {
+func LoadStorage(s storage.Storage) {
 	s.Load()
 
-}
-
-func loadToUserStorage(fieldName, fieldValue string, user *structures.User) {
-	switch fieldName {
-	case "name":
-		user.Name = fieldValue
-	case "email":
-		user.Email = fieldValue
-	case "password":
-		user.Password = fieldValue
-	}
 }
 
 func runCommand(command string) {
@@ -232,7 +115,7 @@ func login() {
 	}
 }
 
-func register(storage Storage) {
+func register(storage storage.Storage) {
 	var newUser = structures.User{}
 	fmt.Println("Enter name :")
 	scanner.Scan()
@@ -262,42 +145,6 @@ func register(storage Storage) {
 func hashPassword(password string) string {
 	hash := md5.Sum([]byte(password))
 	return hex.EncodeToString(hash[:])
-}
-func SerializeData(name, email, password string) {
-	user := structures.User{
-		Name:     name,
-		Email:    email,
-		Password: password,
-		ID:       len(structures.UserStorage) + 1,
-	}
-	switch *serializationMode {
-	case "normal":
-		file, err = os.OpenFile(UserStorageNormalPath, os.O_APPEND, 0644)
-		defer file.Close()
-		if err == nil {
-			userStr := fmt.Sprintf("name:%s, email:%s, password:%s\n", name, email, password)
-			file.Write([]byte(userStr))
-		} else {
-			fmt.Printf("error happend when open file : %v", err)
-		}
-
-	case "json":
-		file, err = os.OpenFile(UserStorageJsonPath, os.O_APPEND, 0644)
-		defer file.Close()
-		if err == nil {
-			userJson, err := json.Marshal(user)
-			if err != nil {
-				fmt.Println("some error happen when serializing :", err)
-			}
-			userJson = append(userJson, "\n"...)
-			file.Write(userJson)
-		} else {
-			fmt.Printf("error %v happend when open file\n", err)
-		}
-
-	default:
-		fmt.Println("some error happend in serializing mode")
-	}
 }
 
 func createCategory() structures.Category {
