@@ -24,29 +24,23 @@ var (
 	file              *os.File
 	err               error
 	serializationMode *string
+	myFile            = fileStorage{path: UserStorageNormalPath}
 )
 
-func main() {
-	fmt.Println(("Wellcome to Todo Application"))
-	command := flag.String("command-task", "exit", "command for create , edit and ...")
-	serializationMode = flag.String("serialize-mode", "normal", "serializtion mode for save status")
-	flag.Parse()
-
-	CreateFile()
-
-	loadFile()
-
-	for {
-		runCommand(*command)
-		println("please enter another command or exit")
-		scanner.Scan()
-		*command = scanner.Text()
-
-	}
-
+type Storage interface {
+	Create()
+	Load()
+	Save(u structures.User)
 }
 
-func CreateFile() {
+type fileStorage struct {
+	path string
+}
+
+func (f fileStorage) Save(u structures.User) {
+	SerializeData(u.Name, u.Email, u.Password)
+}
+func (f fileStorage) Create() {
 	switch *serializationMode {
 	case "normal":
 		_, err = os.Stat(UserStorageNormalPath)
@@ -72,8 +66,7 @@ func CreateFile() {
 		return
 	}
 }
-
-func loadFile() {
+func (f fileStorage) Load() {
 	id := 1
 	var data = make([]byte, 512)
 	switch *serializationMode {
@@ -136,6 +129,33 @@ func loadFile() {
 
 		return
 	}
+}
+func main() {
+	fmt.Println(("Wellcome to Todo Application"))
+	command := flag.String("command-task", "exit", "command for create , edit and ...")
+	serializationMode = flag.String("serialize-mode", "normal", "serializtion mode for save status")
+	flag.Parse()
+
+	CreateStorage(myFile)
+
+	LoadStorage(myFile)
+
+	for {
+		runCommand(*command)
+		println("please enter another command or exit")
+		scanner.Scan()
+		*command = scanner.Text()
+
+	}
+
+}
+
+func CreateStorage(s Storage) {
+	s.Create()
+}
+
+func LoadStorage(s Storage) {
+	s.Load()
 
 }
 
@@ -157,7 +177,7 @@ func runCommand(command string) {
 		fmt.Println("you must login or register first!")
 		switch command {
 		case "register":
-			register()
+			register(myFile)
 		case "login":
 			login()
 		case "exit":
@@ -212,7 +232,7 @@ func login() {
 	}
 }
 
-func register() {
+func register(storage Storage) {
 	var newUser = structures.User{}
 	fmt.Println("Enter name :")
 	scanner.Scan()
@@ -232,7 +252,7 @@ func register() {
 		newUser.CreateUser(name, email, password)
 		newUser.AppendToStorage()
 
-		SerializeData(name, email, password)
+		storage.Save(newUser)
 
 	} else {
 		fmt.Printf("this email  %s exist!\n", email)

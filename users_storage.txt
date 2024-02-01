@@ -2,3 +2,5 @@ name:ali, email:abas, password:23
 name:abas, email:saeed, password:324
 name:ali, email:alsd@, password:223
 name:bal, email:asdjlk@, password:324
+name:dbad, email:sdkl@gam.com, password:06f50ff18bc390a111a00056c509869f
+name:jalal, email:lalj@, password:979d472a84804b9f647bc185a877a8b5
