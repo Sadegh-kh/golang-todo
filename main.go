@@ -7,6 +7,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"todo/entity"
+	"todo/service"
+	"todo/service/pkg"
 	"todo/storage"
 	"todo/structures"
 )
@@ -21,6 +24,7 @@ var (
 	authenticatedUser *structures.User
 	serializationMode *string
 	myFile            = storage.FileStorage{Path: "./data.txt"}
+	taskService       = service.NewTaskService()
 )
 
 func main() {
@@ -31,9 +35,7 @@ func main() {
 	myFile.SerializationMode = *serializationMode
 
 	CreateStorage(myFile)
-
 	LoadStorage(myFile)
-
 	for {
 		runCommand(*command)
 		println("please enter another command or exit")
@@ -43,7 +45,6 @@ func main() {
 	}
 
 }
-
 func CreateStorage(s storage.Storage) {
 	s.Create()
 }
@@ -77,7 +78,12 @@ func authRquiredCommands(command string) {
 	case "create-category":
 		createCategory()
 	case "task-list":
-		fmt.Println(structures.GetTaskList(authenticatedUser.ID))
+		userID := pkg.ListRequest{UserID: authenticatedUser.ID}
+		tasks, err := taskService.GetListTask(userID)
+		if err != nil {
+			fmt.Println("Error happend when geting list of tasks: ", err)
+		}
+		fmt.Println("List of Tasks: ", tasks)
 	case "category-list":
 		fmt.Println(structures.GetCategoryList())
 	case "exit":
@@ -147,27 +153,31 @@ func hashPassword(password string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func createCategory() structures.Category {
+func createCategory() entity.Category {
 	fmt.Println("enter a title for category:")
 	scanner.Scan()
 	var titleCategory = scanner.Text()
-	newCategory := structures.Category{}
-	newCategory.CreateCategory(titleCategory)
+	newCategory := entity.Category{Title: titleCategory}
 	return newCategory
 }
 
 func createTask() {
-	var newTask = structures.Task{}
 	fmt.Println("enter a title for Task:")
 	scanner.Scan()
 	var title = scanner.Text()
 
 	newCategory := createCategory()
 
-	fmt.Println("enter a date for Task:")
-	scanner.Scan()
-	var date = scanner.Text()
+	newTask := pkg.CreateTaskRequest{
+		Title:               title,
+		Category:            newCategory,
+		AuthenticatedUserID: authenticatedUser.ID,
+	}
+	_, err := taskService.CreateTask(newTask)
+	if err != nil {
+		fmt.Println("error happend when createing task becuse: ", err)
 
-	newTask.CreateTask(title, date, newCategory, false, authenticatedUser.ID)
+		return
+	}
 	println("task created")
 }
