@@ -173,11 +173,11 @@ func createTask() {
 		Category:            newCategory,
 		AuthenticatedUserID: authenticatedUser.ID,
 	}
-	_, err := taskService.CreateTask(newTask)
+	task, err := taskService.CreateTask(newTask)
 	if err != nil {
 		fmt.Println("error happend when createing task becuse: ", err)
 
 		return
 	}
-	println("task created")
+	fmt.Printf("Task %v Created\n",task)
 }

@@ -3,14 +3,13 @@ package service
 import (
 	"fmt"
 	"todo/entity"
-	"todo/service/pkg"
 	"todo/storage/memory"
 )
 
 type TaskServiceStorag interface {
 	StorageLen() int
 	SaveTask(t entity.Task) (entity.Task, error)
-	GetListTask(userID int) (pkg.ListResponse, error)
+	GetListTask(userID int) ([]entity.Task, error)
 }
 
 type Task struct {
@@ -20,11 +19,11 @@ type Task struct {
 func NewTaskService() Task {
 	taskStorage := memory.NewTaskStorege()
 	return Task{
-		storage: &taskStorage,
+		storage: taskStorage,
 	}
 }
 
-func (t Task) CreateTask(req pkg.CreateTaskRequest) (pkg.TaskResponse, error) {
+func (t Task) CreateTask(req CreateTaskRequest) (TaskResponse, error) {
 
 	newTask := entity.Task{
 		ID:       t.storage.StorageLen() + 1,
@@ -35,21 +34,39 @@ func (t Task) CreateTask(req pkg.CreateTaskRequest) (pkg.TaskResponse, error) {
 	}
 	newTask, err := t.storage.SaveTask(newTask)
 	if err != nil {
-		return pkg.TaskResponse{}, fmt.Errorf("error happen when save task to storage because: %v", err)
+		return TaskResponse{}, fmt.Errorf("error happen when save task to storage because: %v", err)
 	}
-	responseTask := pkg.TaskResponse{
+	responseTask := TaskResponse{
 		Task: newTask,
 	}
 	return responseTask, nil
 
 }
 
-func (t Task) GetListTask(req pkg.ListRequest) (pkg.ListResponse, error) {
+func (t Task) GetListTask(req ListRequest) (ListResponse, error) {
 
 	tasks, err := t.storage.GetListTask(req.UserID)
 	if err != nil {
-		return pkg.ListResponse{}, fmt.Errorf("can't give list tasks becuse: %v", err)
+		return ListResponse{}, fmt.Errorf("can't give list tasks becuse: %v", err)
 	}
-	return tasks, nil
+	return ListResponse{Tasks: tasks}, nil
 
+}
+
+
+type TaskResponse struct {
+	Task entity.Task
+}
+
+type ListRequest struct {
+	UserID int
+}
+type ListResponse struct {
+	Tasks []entity.Task
+}
+
+type CreateTaskRequest struct {
+	Title               string
+	Category            entity.Category
+	AuthenticatedUserID int
 }

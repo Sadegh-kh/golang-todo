@@ -2,35 +2,31 @@ package memory
 
 import (
 	"todo/entity"
-	"todo/service/pkg"
 )
 
-type Task struct {
+type TaskStore struct {
 	Tasks []entity.Task
 }
 
-func NewTaskStorege() Task {
-	return Task{
+func NewTaskStorege() *TaskStore {
+	return &TaskStore{
 		Tasks: []entity.Task{},
 	}
 }
 
-func (t *Task) StorageLen() int {
+func (t *TaskStore) StorageLen() int {
 	return len(t.Tasks)
 }
-func (t *Task) SaveTask(task entity.Task) (entity.Task, error) {
+func (t *TaskStore) SaveTask(task entity.Task) (entity.Task, error) {
 	t.Tasks = append(t.Tasks, task)
 	return task, nil
 }
-func (t *Task) GetListTask(UserID int) (pkg.ListResponse, error) {
+func (t *TaskStore) GetListTask(UserID int) ([]entity.Task, error) {
 	var userTasks []entity.Task
 	for _, value := range t.Tasks {
 		if UserID == value.UserID {
 			userTasks = append(userTasks, value)
 		}
 	}
-	tasks := pkg.ListResponse{
-		Tasks: userTasks,
-	}
-	return tasks, nil
+	return userTasks, nil
 }
