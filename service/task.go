@@ -6,18 +6,24 @@ import (
 	"todo/storage/memory"
 )
 
-type TaskServiceStorag interface {
+type TaskService interface {
 	StorageLen() int
 	SaveTask(t entity.Task) (entity.Task, error)
 	GetListTask(userID int) ([]entity.Task, error)
 }
+type CategoryService interface {
+	CheckCategoryByUserID(userID,categoryID int)bool
+}
 
 type Task struct {
-	storage TaskServiceStorag
+	storage TaskService
+	CategoryStorage CategoryService
 }
 
 func NewTaskService() Task {
 	taskStorage := memory.NewTaskStorege()
+	// categoryStorage:=memory.NewCategoryStorage()
+	// categoryTaskStorage := memory.NewTaskCategoryStorege(taskStorage,categoryStorage)
 	return Task{
 		storage: taskStorage,
 	}

@@ -47,6 +47,7 @@ func main() {
 			continue
 		}
 
+		fmt.Println("command",req.Command)
 		switch req.Command{
 		case "create-task":
 			task :=req.Task

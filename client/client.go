@@ -33,6 +33,8 @@ func main() {
 	command := flag.String("command-task", "exit", "command for create , edit and ...")
 	flag.Parse()
 	for {
+		fmt.Println("local address:",listener.LocalAddr())
+		fmt.Println("local address:",listener.RemoteAddr())
 		runCommand(*command,listener)
 		println("please enter another command or exit")
 		scanner.Scan()
@@ -83,7 +85,6 @@ func runCommand(command string,listener net.Conn) {
 	case "create-category":
 		// TODO
 	case "task-list":
-		fmt.Println("task-lists")
 		req := deliveryparam.Request{
 			Command: command,
 		}
@@ -104,7 +105,6 @@ func runCommand(command string,listener net.Conn) {
 		if err!=nil{
 			log.Fatalln("Error happend when resive data from server in task list becuse:",err)
 		}
-		fmt.Println("list of task response:",numberOfBytesData)
 		listTasks:=service.ListResponse{}
 		err=json.Unmarshal(response[:numberOfBytesData],&listTasks)
 		fmt.Println("listResponse:",listTasks)
